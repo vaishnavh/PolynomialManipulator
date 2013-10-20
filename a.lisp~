@@ -76,9 +76,7 @@
 ;;
 
 (defun constant-p (poly)
- ; (or (numberp poly)) (eq 'C poly) (and (simple-p poly) (= 0 (polynomial-degree poly))))
-  (or (numberp poly)) (eq 'C poly) )
-
+  (or (numberp poly)) (eq 'C poly) (and (simple-p poly) (= 0 (polynomial-degree poly))))
 
 (defun variable-p (poly)
  (symbolp poly))
@@ -96,8 +94,7 @@
 
 ;ASSUMES that third element is a list of real numbers
 (defun simple-p (poly)
-; (and (listp poly) (= 3 (length poly)) (eq (first poly) 'SIMPLE) (symbolp (second poly)) (listp (third poly))))
-  (or (constant-p poly) (and (listp poly) (= 3 (length poly)) (eq (first poly) 'SIMPLE) (symbolp (second poly)) (listp (third poly)))))
+ (and (listp poly) (= 3 (length poly)) (eq (first poly) 'SIMPLE) (symbolp (second poly)) (listp (third poly))))
 
 (defun polynomial-p (poly)
   (if (null (variable-symbol poly)) NIL 
@@ -207,8 +204,7 @@
 (defun simplify (poly)
  (cond
   ((simple-p poly) poly)
-  ((constant-p poly) (make-simple-polynomial (list () 'COEFF (constant-numeric poly))))
-  ((variable-p poly) (make-simple-polynomial (list )))
+  ((constant-p poly) poly)
   ((product-p poly) (simple-product (product-arg1 poly) (product-arg2 poly))) 
   ((sum-p poly) (simple-sum (sum-arg1 poly) (sum-arg2 poly)))
   ((power-p poly) 
