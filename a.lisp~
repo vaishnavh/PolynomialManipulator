@@ -76,7 +76,9 @@
 ;;
 
 (defun constant-p (poly)
-  (or (numberp poly)) (eq 'C poly) (and (simple-p poly) (= 0 (polynomial-degree poly))))
+ ; (or (numberp poly)) (eq 'C poly) (and (simple-p poly) (= 0 (polynomial-degree poly))))
+  (or (numberp poly) (eq 'C poly)) )
+
 
 (defun variable-p (poly)
  (symbolp poly))
@@ -94,7 +96,8 @@
 
 ;ASSUMES that third element is a list of real numbers
 (defun simple-p (poly)
- (and (listp poly) (= 3 (length poly)) (eq (first poly) 'SIMPLE) (symbolp (second poly)) (listp (third poly))))
+; (and (listp poly) (= 3 (length poly)) (eq (first poly) 'SIMPLE) (symbolp (second poly)) (listp (third poly))))
+  (or (constant-p poly) (and (listp poly) (= 3 (length poly)) (eq (first poly) 'SIMPLE) (symbolp (second poly)) (listp (third poly)))))
 
 (defun polynomial-p (poly)
   (if (null (variable-symbol poly)) NIL 
@@ -112,7 +115,7 @@
 (defun constant-numeric (const)
   (cond 
     ((numberp const) const)
-    ((and (constant-p const) (simple-p const)) (car (coefficient-list const)))
+    ;((and (constant-p const) (simple-p const)) (car (coefficient-list const)))
   )
 )
 
@@ -174,6 +177,7 @@
 
 (defun coefficient-list (poly)
   (cond
+    ((constant-p poly) (list poly))
     ((simple-p poly) (third poly))
   )
 )
@@ -204,17 +208,17 @@
 (defun simplify (poly)
  (cond
   ((simple-p poly) poly)
-  ((constant-p poly) poly)
+  ((constant-p poly) poly) ;(make-simple-polynomial (list () 'COEFF (constant-numeric poly))))
+  ((variable-p poly) (make-simple-polynomial (list (variable-symbol poly) 'COEFF '(0 1))))
   ((product-p poly) (simple-product (product-arg1 poly) (product-arg2 poly))) 
   ((sum-p poly) (simple-sum (sum-arg1 poly) (sum-arg2 poly)))
   ((power-p poly) 
-      (if (= 0 (power-exponent poly)) (make-simple-polynomial (list (variable-symbol poly) 'COEFF '(1)))
-        (simple-product (power-base poly) (make-power (power-base poly) (- (power-exponent poly) 1)))
+      (if (= 0 (power-exponent poly)) 1 
+        (if (= 1 (power-exponent poly)) (simplify (power-base poly));
+          (simple-product (power-base poly) (make-power (power-base poly) (- (power-exponent poly) 1)))
       )
-
-  )
- )
-)
+ ))
+))
 
 
 (defun integrate (poly)
@@ -233,18 +237,25 @@
 
 (defun simple-sum (poly1 poly2)
 ;TODO : Extend to many arguments
-  (let ( (sp1 (simplify poly1)) (sp2 (simplify poly2)))
-    (if (compatible sp1 sp2) (list 'SIMPLE (variable-symbol sp1) (sum-coefficients (coefficient-list sp1) (coefficient-list sp2)))
-      NIL)
-  )
+  (let ( (sp1 (simplify poly1)) (sp2 (simplify poly2))) 
+  (cond
+    
+      ((and (constant-p poly1) (constant-p poly2)) (+ poly1 poly2))
+      ((constant-p poly1) (list 'SIMPLE (variable-symbol sp2) (sum-coefficients (coefficient-list sp1) (coefficient-list sp2))))
+      ((compatible poly1 poly2) (list 'SIMPLE (variable-symbol sp1) (sum-coefficients (coefficient-list sp1) (coefficient-list sp2))))
+  ))
 )
 
 
 (defun simple-product (poly1 poly2)
 ;TODO : Extend to many arguments
  (let ( (sp1 (simplify poly1)) (sp2 (simplify poly2)))
-    (if (compatible sp1 sp2) (list 'SIMPLE  (variable-symbol sp1) (product-coefficients (coefficient-list sp1) (coefficient-list sp2)))
-      NIL)
+   (cond
+      ((and (constant-p poly1) (constant-p poly2)) (* poly1 poly2))
+      ((constant-p poly1) (list 'SIMPLE (variable-symbol sp2) (product-coefficients (coefficient-list sp1) (coefficient-list sp2))))
+      ((compatible poly1 poly2) (list 'SIMPLE (variable-symbol sp1) (product-coefficients (coefficient-list sp1) (coefficient-list sp2))))   )
+   ; (if (compatible sp1 sp2) (list 'SIMPLE  (variable-symbol sp1) (product-coefficients (coefficient-list sp1) (coefficient-list sp2)))
+   ;   NIL)
   )
 )
 
