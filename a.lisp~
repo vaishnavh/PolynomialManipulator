@@ -20,6 +20,9 @@
 (defun make-sum (poly1 poly2)
   (list '+ poly1 poly2))
 
+(defun make-diff (poly1 poly2)
+  (list '- poly1 poly2))
+
 (defun make-product (poly1 poly2)
   (list '* poly1 poly2))
 
@@ -74,11 +77,14 @@
 ;;
 ;; Recognizers for complex polynomials
 ;;
-
+(defun constant-auxiliary (poly)
+;Filters only those without any - or + as constants
+  (or (numberp poly) (eq 'C poly))
+)
 (defun constant-p (poly)
  ; (or (numberp poly)) (eq 'C poly) (and (simple-p poly) (= 0 (polynomial-degree poly))))
-  (or (numberp poly) (eq 'C poly)) )
-
+ ; (or (constant-auxiliary poly)) (numberp (simplify poly)));(and (not (simple-p poly)) (numberp (simplify poly))))
+ (constant-auxiliary poly)) ;TODO : Remember to remove the unneceesary call
 
 (defun variable-p (poly)
  (symbolp poly))
@@ -86,6 +92,11 @@
 (defun sum-p (poly)
   (let ((poly1 (sum-arg1 poly)) (poly2 (sum-arg2 poly))) 
      (and (listp poly) (= 3 (length poly)) (eq (operator poly) '+) (polynomial-p poly1) (polynomial-p poly2) (compatible poly1 poly2))))
+
+
+(defun diff-p (poly)
+  (let ((poly1 (sum-arg1 poly)) (poly2 (sum-arg2 poly))) 
+     (and (listp poly) (= 3 (length poly)) (eq (operator poly) '-) (polynomial-p poly1) (polynomial-p poly2) (compatible poly1 poly2))))
 
 (defun product-p (poly)
   (let ((poly1 (product-arg1 poly)) (poly2 (product-arg2 poly))) 
@@ -97,11 +108,12 @@
 ;ASSUMES that third element is a list of real numbers
 (defun simple-p (poly)
 ; (and (listp poly) (= 3 (length poly)) (eq (first poly) 'SIMPLE) (symbolp (second poly)) (listp (third poly))))
-  (or (constant-p poly) (and (listp poly) (= 3 (length poly)) (eq (first poly) 'SIMPLE) (symbolp (second poly)) (listp (third poly)))))
+  (or (constant-auxiliary poly) (and (listp poly) (= 3 (length poly)) (eq (first poly) 'SIMPLE) ; ?Required(symbolp (second poly))
+    (listp (third poly)))))
 
 (defun polynomial-p (poly)
   (if (null (variable-symbol poly)) NIL 
-    (or (constant-p poly) (variable-p poly) (simple-p poly)  (sum-p poly) (product-p poly) (power-p poly))))
+    (or (constant-p poly) (variable-p poly) (simple-p poly)  (sum-p poly) (diff-p poly) (product-p poly) (power-p poly))))
 
 (defun exponent-p (power)
   (and (integerp power) (<= 0 power)))
@@ -121,6 +133,7 @@
 
 
 ;Return NIL if no valid variable symbol is found
+;To find the variable contained by the polynomial
 (defun variable-symbol (poly)
   (cond
     ((constant-p poly) poly) ;TODO : Check correctness
@@ -137,6 +150,18 @@
         ((T) NIL)
       )
     ))
+    ((diff-p poly) (let (
+        (var1 (variable-symbol (diff-arg1 poly)))
+        (var2 (variable-symbol (diff-arg2 poly)))
+      )
+      (cond
+        ((constant-p var1) (variable-symbol var2))
+        ((constant-p var2) (variable-symbol var1))
+        ((eq var1 var2) var1)
+        ((T) NIL)
+      )
+    ))
+    
      ((product-p poly) (let (
         (var1 (variable-symbol (product-arg1 poly)))
         (var2 (variable-symbol (product-arg2 poly)))
@@ -163,6 +188,12 @@
 (defun sum-arg2 (sum)
   (third sum))
 
+(defun diff-arg1 (diff)
+  (second diff))
+
+(defun diff-arg2 (diff)
+  (third diff))
+
 (defun product-arg1 (prod)
   (second prod))
 
@@ -186,20 +217,22 @@
 ;;Degree of a polynomial
 (defun polynomial-degree (poly)
   (cond
-    ((simple-p poly) (length (coefficient-list poly)))
+    ((simple-p poly) (- (length (coefficient-list poly)) 1))
     ((polynomial-p poly) (polynomial-degree (simplify poly)))
 ))
 
 ;;Whether variables of both poly match
 (defun compatible (poly1 poly2)
-    (let 
+    (let* 
       (
-        (var1 (variable-symbol poly1))
-        (var2 (variable-symbol poly2))
+        (sp1 (simplify poly1))
+        (sp2 (simplify poly2))
+        (var1 (variable-symbol sp1))
+        (var2 (variable-symbol sp2))
       )
      (if (or (null var1) (null var2)) NIL
      ;  If one of them is inherently not a valid polynomial, incompatible
-        (if (or (constant-p poly1) (constant-p poly2) ) T (eq var1 var2)) ) 
+        (if (or (constant-p sp1) (constant-p sp2) ) T (eq var1 var2)) ) 
         ;If one of them is a constant, compatible
         ; else look at what variables they contain
     ))
@@ -208,10 +241,11 @@
 (defun simplify (poly)
  (cond
   ((simple-p poly) poly)
-  ((constant-p poly) poly) ;(make-simple-polynomial (list () 'COEFF (constant-numeric poly))))
+  ((constant-auxiliary poly) poly) ;(make-simple-polynomial (list () 'COEFF (constant-numeric poly))))
   ((variable-p poly) (make-simple-polynomial (list (variable-symbol poly) 'COEFF '(0 1))))
   ((product-p poly) (simple-product (product-arg1 poly) (product-arg2 poly))) 
   ((sum-p poly) (simple-sum (sum-arg1 poly) (sum-arg2 poly)))
+  ((diff-p poly) (simple-subtract (diff-arg1 poly) (diff-arg2 poly)))
   ((power-p poly) 
       (if (= 0 (power-exponent poly)) 1 
         (if (= 1 (power-exponent poly)) (simplify (power-base poly));
@@ -237,23 +271,22 @@
 
 (defun simple-sum (poly1 poly2)
 ;TODO : Extend to many arguments
-  (let ( (sp1 (simplify poly1)) (sp2 (simplify poly2))) 
-  (cond
-    
-      ((and (constant-p poly1) (constant-p poly2)) (+ poly1 poly2))
-      ((constant-p poly1) (list 'SIMPLE (variable-symbol sp2) (sum-coefficients (coefficient-list sp1) (coefficient-list sp2))))
-      ((compatible poly1 poly2) (list 'SIMPLE (variable-symbol sp1) (sum-coefficients (coefficient-list sp1) (coefficient-list sp2))))
-  ))
-)
+  (let* ( (sp1 (simplify poly1)) (sp2 (simplify poly2)) (c1 (coefficient-list sp1)) (c2 (coefficient-list sp2)) (csum (sum-coefficients c1 c2))) 
+  (if (>= 1 (length  csum)) (car csum)  
+    (cond 
+        ((and (constant-p poly1) (constant-p poly2)) (+ poly1 poly2))
+        ((constant-p poly1) (simple-purge (list 'SIMPLE (variable-symbol sp2) csum)))
+        ((compatible poly1 poly2) (simple-purge (list 'SIMPLE (variable-symbol sp1) csum)))))
+))
 
 
 (defun simple-product (poly1 poly2)
 ;TODO : Extend to many arguments
  (let ( (sp1 (simplify poly1)) (sp2 (simplify poly2)))
    (cond
-      ((and (constant-p poly1) (constant-p poly2)) (* poly1 poly2))
-      ((constant-p poly1) (list 'SIMPLE (variable-symbol sp2) (product-coefficients (coefficient-list sp1) (coefficient-list sp2))))
-      ((compatible poly1 poly2) (list 'SIMPLE (variable-symbol sp1) (product-coefficients (coefficient-list sp1) (coefficient-list sp2))))   )
+      ((and (constant-p sp1) (constant-p poly2)) (* poly1 poly2))
+      ((constant-p sp1) (simple-purge (list 'SIMPLE (variable-symbol sp2) (product-coefficients (coefficient-list sp1) (coefficient-list sp2)))))
+      ((compatible sp1 sp2) (simple-purge (list 'SIMPLE (variable-symbol sp1) (product-coefficients (coefficient-list sp1) (coefficient-list sp2))))))
    ; (if (compatible sp1 sp2) (list 'SIMPLE  (variable-symbol sp1) (product-coefficients (coefficient-list sp1) (coefficient-list sp2)))
    ;   NIL)
   )
@@ -281,17 +314,53 @@
 
 
 (defun simple-subtract (poly1 poly2)
-  (simple-sum poly1 (simple-product (replace-coefficients poly2 '(-1) )) poly2))
+  (simple-sum poly1 (simple-product -1 poly2)))
 
 
 ;Expect simple polynomial as input
+;NOTE: ASSUMPTION MADE
 (defun simple-purge (poly)
   (let ( (coeff (coefficient-list poly)))
-  (if (simple-p poly) (if (equal (list 0) (last coeff)) (simple-purge (replace-coefficients poly (butlast coeff)) )  poly)
-  NIL))
+  (cond
+    ((equal (list 0) coeff) 0)
+    ((simple-p poly) (if (equal (list 0) (last coeff)) (simple-purge (replace-coefficients poly (butlast coeff)) )  poly))
+    ((T) NIL)
+  )
+  )
 )
 
 
+;Given a polynomial ,replaces its coeeficient list
 (defun replace-coefficients (poly new-list)
- (if (simple-p poly) (make-simple-polynomial (list (variable-symbol poly) 'COEFF new-list)))
+  (cond
+    ((constant-p poly) (if (= 1 (length new-list)) (car new-list) NIL))
+    ((simple-p poly) (if (simple-p poly) (make-simple-polynomial (list (variable-symbol poly) 'COEFF new-list))))
+  ) 
+)
+
+;ASSUMES SIMPLE POLYNOMIAL
+;Returns the coefficient of the highest degree
+(defun highest-coefficient (poly)
+  (first (last (coefficient-list poly))))
+
+;Divide polynomials and return (qoutient  reminder)
+(defun divide (poly1 poly2)
+  (if (compatible poly1 poly2)
+  (let ((deg1 (polynomial-degree poly1) ) (deg2 (polynomial-degree poly2)) (sp1 (simplify poly1)) (sp2 (simplify poly2)))
+      (if (and (constant-p poly1) (constant-p poly2)) (list (/ poly1 poly2) 0); ?Required(let* ( (r (mod poly1 poly2)) (q (/ (- poly1 r) poly2))) (list q r))
+        (if (< deg1 deg2) (list 0 sp1)
+        (let* ( 
+            (t1 (highest-coefficient sp1)) 
+            (t2 (highest-coefficient sp2)) 
+            (var (variable-symbol sp1)) 
+            (q (/ t1 t2))
+            (f (make-simple-polynomial (list var 'PAIR (list (list (- deg1 deg2) q)))))
+            (to-remove (simple-product f sp2))
+            (subresult (divide (simple-subtract sp1 to-remove) sp2))
+            ) 
+            (list (make-simple-polynomial (list var 'COEFF (append (coefficient-list (first subresult)) (list q)))) (second subresult))
+        )))
+  ) 
+  NIL
+  )
 )

@@ -347,7 +347,7 @@
 (defun divide (poly1 poly2)
   (if (compatible poly1 poly2)
   (let ((deg1 (polynomial-degree poly1) ) (deg2 (polynomial-degree poly2)) (sp1 (simplify poly1)) (sp2 (simplify poly2)))
-      (if (and (constant-p poly1) (constant-p poly2)) (list (/ poly1 poly2) 0); ?Required(let* ( (r (mod poly1 poly2)) (q (/ (- poly1 r) poly2))) (list q r))
+      (if (and (constant-p poly1) (constant-p poly2)) ((/ poly1 poly2) 0); ?Required(let* ( (r (mod poly1 poly2)) (q (/ (- poly1 r) poly2))) (list q r))
         (if (< deg1 deg2) (list 0 sp1)
         (let* ( 
             (t1 (highest-coefficient sp1)) 
@@ -358,9 +358,7 @@
             (to-remove (simple-product f sp2))
             (subresult (divide (simple-subtract sp1 to-remove) sp2))
             ) 
-            (list ;(make-simple-polynomial (list var 'COEFF (append (coefficient-list (first subresult)) (list q))))
-             (simple-sum f (first subresult))
-             (second subresult))
+            (list (make-simple-polynomial (list var 'COEFF (append (coefficient-list (first subresult)) (list q)))) (second subresult))
         )))
   ) 
   NIL
