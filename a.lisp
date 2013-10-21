@@ -49,7 +49,7 @@
         ( if (exponent-p power) (append (make-list power :initial-element 0) (list (coefficient pair)))
             NIL
         ))     
-      (sum-coefficients (convert_coeff (list (car coeff))) (convert_coeff (cdr coeff))))
+      (sum-coefficients (convert-coeff (list (car coeff))) (convert-coeff (cdr coeff))))
 )
 
 
@@ -240,8 +240,8 @@
 ;;Converting to simplified form
 (defun simplify (poly)
  (cond
-  ((simple-p poly) poly)
-  ((constant-auxiliary poly) poly) ;(make-simple-polynomial (list () 'COEFF (constant-numeric poly))))
+  ((simple-p poly) (simple-purge poly))
+  ((constant-auxiliary poly)  poly) ;(make-simple-polynomial (list () 'COEFF (constant-numeric poly))))
   ((variable-p poly) (make-simple-polynomial (list (variable-symbol poly) 'COEFF '(0 1))))
   ((product-p poly) (simple-product (product-arg1 poly) (product-arg2 poly))) 
   ((sum-p poly) (simple-sum (sum-arg1 poly) (sum-arg2 poly)))
@@ -323,7 +323,10 @@
   (let ( (coeff (coefficient-list poly)))
   (cond
     ((equal (list 0) coeff) 0)
-    ((simple-p poly) (if (equal (list 0) (last coeff)) (simple-purge (replace-coefficients poly (butlast coeff)) )  poly))
+    ((simple-p poly) (if (equal (list 0) (last coeff)) (simple-purge (replace-coefficients poly (butlast coeff)) )  
+                            (if (= 1 (length coeff)) (car coeff) poly)))
+                           ;poly))
+                      
     ((T) NIL)
   )
   )
@@ -346,7 +349,7 @@
 ;Divide polynomials and return (qoutient  reminder)
 (defun divide (poly1 poly2)
   (if (compatible poly1 poly2)
-  (let ((deg1 (polynomial-degree poly1) ) (deg2 (polynomial-degree poly2)) (sp1 (simplify poly1)) (sp2 (simplify poly2)))
+  (let* ((sp1 (simplify poly1)) (sp2 (simplify poly2))(deg1 (polynomial-degree sp1) ) (deg2 (polynomial-degree sp2)))
       (if (and (constant-p poly1) (constant-p poly2)) (list (/ poly1 poly2) 0); ?Required(let* ( (r (mod poly1 poly2)) (q (/ (- poly1 r) poly2))) (list q r))
         (if (< deg1 deg2) (list 0 sp1)
         (let* ( 
@@ -365,4 +368,55 @@
   ) 
   NIL
   )
+)
+
+(defun get-linear-factors (poly)
+  (let* (
+          (sp (simplify poly))
+          (coeff (coefficient-list sp))
+          (const (car coeff)) 
+          (high (highest-coefficient sp)) 
+          (rat (/ const high))
+          (a_0 (abs (numerator rat)))
+          (a_n (abs (denominator rat)))
+          ) 
+   (factorize-loop sp a_0 a_n 0 1) 
+  )
+)
+
+(defun quotient (answer)
+  (first quotient))
+
+(defun remainder (answer)
+  (second quotient))
+
+;ASSUMPTION spl is simple polynomial
+(defun factorize-loop (spl a_0 a_n b_0 b_1) 
+          
+  ;Function definition
+      (cond
+          ((> b_1 a_0) (list spl NIL));(if (> b_0 a_n)) (list spl NIL) (factorize-loop spl a_0 a_n (+ 1 b_0) 1)))
+          ((> b_0 a_n) (factorize-loop spl a_0 a_n 0 (+ 1 b_1) ))
+          (T (let* (
+                      (fac1  (make-simple-polynomial (list (variable-symbol spl) 'PAIR (list (list 0 b_0) (list 1 b_1))) ))
+                      (fac2  (make-simple-polynomial (list (variable-symbol spl) 'PAIR (list (list 0 (- 0 b_0)) (list 1 b_1))) ))
+                      (div1 (divide spl fac1))
+                      (div2 (divide spl fac2))
+                      (sp1 (cond 
+                              ((and (= 0 (second div1)) (= 0 (second div2))) (first (divide (first div1) fac2))) 
+                                ((= 0 (second div1)) (first div1))
+                                ((= 0 (second div2)) (first div2))
+                                (T spl))
+                      )
+                      (result (factorize-loop sp1 a_0 a_n (+ b_0 1) b_1))
+                      (res1 (if (= 0 (second div1)) (list fac1) NIL))
+                      (res2 (if (or (= 0 b_0) (not (= 0 (second div2)))) res1 (append res1 (list fac2))))
+                    )
+                    (list (first result) (append res2 (second result)))
+                    
+          
+                ))
+        )
+      
+      
 )
