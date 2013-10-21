@@ -371,7 +371,11 @@
 )
 
 (defun get-linear-factors (poly)
-  (let* (
+  (let* ((sp (simplify poly)) (deg (polynomial-degree sp)))
+  (cond 
+  ( (> 1 deg) NIL)
+  ( (= 1 deg) poly)
+  (T  (let* (
           (sp (simplify poly))
           (coeff (coefficient-list sp))
           (const (car coeff)) 
@@ -380,8 +384,8 @@
           (a_0 (abs (numerator rat)))
           (a_n (abs (denominator rat)))
           ) 
-   (factorize-loop sp a_0 a_n 0 1) 
-  )
+          (factorize-loop sp a_0 a_n 0 1)   
+  ))));
 )
 
 (defun quotient (answer)
@@ -395,8 +399,8 @@
           
   ;Function definition
       (cond
-          ((> b_1 a_0) ((if (> b_0 a_n)) (list spl NIL) (factorize-loop spl a_0 a_n (+ 1 b_0) 1)))
-          ((> b_0 a_n) (factorize-loop spl a_0 a_n 0 (+ 1 b_1) ))
+          ((> b_1 a_n) (list spl NIL));(if (> b_0 a_n)) (list spl NIL) (factorize-loop spl a_0 a_n (+ 1 b_0) 1)))
+          ((> b_0 a_0) (factorize-loop spl a_0 a_n 0 (+ 1 b_1) ))
           (T (let* (
                       (fac1  (make-simple-polynomial (list (variable-symbol spl) 'PAIR (list (list 0 b_0) (list 1 b_1))) ))
                       (fac2  (make-simple-polynomial (list (variable-symbol spl) 'PAIR (list (list 0 (- 0 b_0)) (list 1 b_1))) ))
@@ -410,7 +414,8 @@
                       )
                       (result (factorize-loop sp1 a_0 a_n (+ b_0 1) b_1))
                       (res1 (if (= 0 (second div1)) (list fac1) NIL))
-                      (res2 (if (or (= 0 b_0) (not (= 0 (second div2)))) res1 (append res1 (list fac2))))
+                      ;(res2 (if (or (= 0 b_0) (not (= 0 (second div2)))) res1 (append res1 (list fac2))))
+                      (res2 (if (or (not (= 0 (second div2)))) res1 (append res1 (list fac2))))
                     )
                     (list (first result) (append res2 (second result)))
                     
