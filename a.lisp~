@@ -35,8 +35,8 @@
 (defun make-simple-polynomial(poly)
   (cond
     ((polynomial-p poly)  (simplify poly))
-    ((eq (second poly) 'COEFF) (list 'SIMPLE (first poly) (third poly)))
-    ((eq (second poly) 'PAIR) (list 'SIMPLE (first poly) (convert-coeff (third poly))))
+    ((equal (second poly) 'COEFF) (list 'SIMPLE (first poly) (third poly)))
+    ((equal (second poly) 'PAIR) (list 'SIMPLE (first poly) (convert-coeff (third poly))))
   )
 )
 
@@ -68,7 +68,7 @@
 
 (defun sum-coefficients-auxiliary (symb1 symb2)
   (if (and (numberp symb1) (numberp symb2)) (+ symb1 symb2)
-    (if (or (eq symb1 'C) (eq symb2 'C)) 'C 0)
+    (if (or (equal symb1 'C) (equal symb2 'C)) 'C 0)
   )
 )
 
@@ -79,10 +79,10 @@
 ;;
 (defun constant-auxiliary (poly)
 ;Filters only those without any - or + as constants
-  (or (numberp poly) (eq 'C poly))
+  (or (numberp poly) (equal 'C poly))
 )
 (defun constant-p (poly)
- ; (or (numberp poly)) (eq 'C poly) (and (simple-p poly) (= 0 (polynomial-degree poly))))
+ ; (or (numberp poly)) (equal 'C poly) (and (simple-p poly) (= 0 (polynomial-degree poly))))
  ; (or (constant-auxiliary poly)) (numberp (simplify poly)));(and (not (simple-p poly)) (numberp (simplify poly))))
  (constant-auxiliary poly)) ;TODO : Remember to remove the unneceesary call
 
@@ -91,24 +91,24 @@
 
 (defun sum-p (poly)
   (let ((poly1 (sum-arg1 poly)) (poly2 (sum-arg2 poly))) 
-     (and (listp poly) (= 3 (length poly)) (eq (operator poly) '+) (polynomial-p poly1) (polynomial-p poly2) (compatible poly1 poly2))))
+     (and (listp poly) (= 3 (length poly)) (equal (operator poly) '+) (polynomial-p poly1) (polynomial-p poly2) (compatible poly1 poly2))))
 
 
 (defun diff-p (poly)
   (let ((poly1 (sum-arg1 poly)) (poly2 (sum-arg2 poly))) 
-     (and (listp poly) (= 3 (length poly)) (eq (operator poly) '-) (polynomial-p poly1) (polynomial-p poly2) (compatible poly1 poly2))))
+     (and (listp poly) (= 3 (length poly)) (equal (operator poly) '-) (polynomial-p poly1) (polynomial-p poly2) (compatible poly1 poly2))))
 
 (defun product-p (poly)
   (let ((poly1 (product-arg1 poly)) (poly2 (product-arg2 poly))) 
-     (and (listp poly) (= 3 (length poly)) (eq (operator poly) '*) (polynomial-p poly1) (polynomial-p poly2) (compatible poly1 poly2))))
+     (and (listp poly) (= 3 (length poly)) (equal (operator poly) '*) (polynomial-p poly1) (polynomial-p poly2) (compatible poly1 poly2))))
 
 (defun power-p (poly)
-  (and (listp poly) (= 3 (length poly))  (eq (operator poly) '^) (polynomial-p (power-base poly)) (exponent-p (power-exponent poly))))
+  (and (listp poly) (= 3 (length poly))  (equal (operator poly) '^) (polynomial-p (power-base poly)) (exponent-p (power-exponent poly))))
 
 ;ASSUMES that third element is a list of real numbers
 (defun simple-p (poly)
-; (and (listp poly) (= 3 (length poly)) (eq (first poly) 'SIMPLE) (symbolp (second poly)) (listp (third poly))))
-  (or (constant-auxiliary poly) (and (listp poly) (= 3 (length poly)) (eq (first poly) 'SIMPLE) ; ?Required(symbolp (second poly))
+; (and (listp poly) (= 3 (length poly)) (equal (first poly) 'SIMPLE) (symbolp (second poly)) (listp (third poly))))
+  (or (constant-auxiliary poly) (and (listp poly) (= 3 (length poly)) (equal (first poly) 'SIMPLE) ; ?Required(symbolp (second poly))
     (listp (third poly)))))
 
 (defun polynomial-p (poly)
@@ -146,7 +146,7 @@
       (cond
         ((constant-p var1) (variable-symbol var2))
         ((constant-p var2) (variable-symbol var1))
-        ((eq var1 var2) var1)
+        ((equal var1 var2) var1)
         ((T) NIL)
       )
     ))
@@ -157,7 +157,7 @@
       (cond
         ((constant-p var1) (variable-symbol var2))
         ((constant-p var2) (variable-symbol var1))
-        ((eq var1 var2) var1)
+        ((equal var1 var2) var1)
         ((T) NIL)
       )
     ))
@@ -169,7 +169,7 @@
       (cond 
         ((constant-p var1) (variable-symbol var2))
         ((constant-p var2) (variable-symbol var1))
-        ((eq var1 var2) var1)
+        ((equal var1 var2) var1)
         ((T) NIL)
       ) 
  
@@ -232,7 +232,7 @@
       )
      (if (or (null var1) (null var2)) NIL
      ;  If one of them is inherently not a valid polynomial, incompatible
-        (if (or (constant-p sp1) (constant-p sp2) ) T (eq var1 var2)) ) 
+        (if (or (constant-p sp1) (constant-p sp2) ) T (equal var1 var2)) ) 
         ;If one of them is a constant, compatible
         ; else look at what variables they contain
     ))
@@ -303,7 +303,7 @@
 
 (defun product-coefficients-auxiliary (symb1 poly2)
 ;TODO : Rename variables properly
-  (let ( (prod (lambda (x y) (if (or (eq 'C x) (eq 'C y)) 'C (* x y))))) 
+  (let ( (prod (lambda (x y) (if (or (equal 'C x) (equal 'C y)) 'C (* x y))))) 
            
       (mapcar #'(lambda (x) (funcall prod x symb1)) poly2)
 ))
@@ -425,15 +425,15 @@
                       (div1 (divide spl fac1))
                       (div2 (divide spl fac2))
                       (sp1 (cond 
-                              ((and (eq 0 (remainder div1)) (= 0 (second div2)) (not (eq fac1 fac2))) (first (divide (quotient div1) fac2))) 
-                                ((eq 0 (remainder div1)) (quotient div1))
-                                ((eq 0 (remainder div2)) (quotient div2))
+                              ((and (equal 0 (remainder div1)) (= 0 (second div2)) (not (equal fac1 fac2))) (first (divide (quotient div1) fac2))) 
+                                ((equal 0 (remainder div1)) (quotient div1))
+                                ((equal 0 (remainder div2)) (quotient div2))
                                 (T spl))
                       )
                       (result (linear-factorize-loop sp1 a_0 a_n (+ b_0 1) b_1))
-                      (res1 (if (eq 0 (remainder div1)) (list fac1) NIL))
-                      ;(res2 (if (or (= 0 b_0) (not (eq 0 (remainder div2)))) res1 (append res1 (list fac2))))
-                      (res2 (if (or (not (eq 0 (remainder div2)))) res1 (append res1 (list fac2))))
+                      (res1 (if (equal 0 (remainder div1)) (list fac1) NIL))
+                      ;(res2 (if (or (= 0 b_0) (not (equal 0 (remainder div2)))) res1 (append res1 (list fac2))))
+                      (res2 (if (or (not (equal 0 (remainder div2)))) res1 (append res1 (list fac2))))
                     )
                     (list (first result) (append res2 (second result)))
                     
@@ -458,7 +458,7 @@
                (list (first result2) (append (second result) (second result2)))
           )
         )      
-)
+    )
 )
 
 ;Assumption spl is simple polynomial
@@ -478,16 +478,16 @@
                       (div2 (divide spl fac2))
                       (div3 (divide spl fac3))
                       (div4 (divide spl fac4))
-                      (sp1 (if (eq 0 (remainder div1)) (quotient div1) spl))
-                      (sp2 (if (and (not (eq fac1 fac2)) (eq 0 (remainder div2))) (quotient (divide sp1 fac2)) sp1 ))
-                      (sp3 (if (and (not (eq fac1 fac3)) (not (eq fac2 fac3)) (eq 0 (remainder div3))) (quotient (divide sp2 fac3)) sp2))
-                      (sp4 (if (and (not (eq fac1 fac4)) (not (eq fac2 fac4)) (not (eq fac3 fac4)) (eq 0 (remainder div4))) (quotient (divide sp3 fac4)) sp3))
+                      (sp1 (if (equal 0 (remainder div1)) (quotient div1) spl))
+                      (sp2 (if (and (not (equal fac1 fac2)) (equal 0 (remainder div2))) (quotient (divide sp1 fac2)) sp1 ))
+                      (sp3 (if (and (not (equal fac1 fac3)) (not (equal fac2 fac3)) (eq 0 (remainder div3))) (quotient (divide sp2 fac3)) sp2))
+                      (sp4 (if (and (not (equal fac1 fac4)) (not (equal fac2 fac4)) (not (eq fac3 fac4)) (eq 0 (remainder div4))) (quotient (divide sp3 fac4)) sp3))
                       ;sp4 is not the remaining polynomial after all 4 divisions
                       (result (quadratic-factorize-innerloop sp4 a_0 a_n b_0 b_1 (+ 1 c)))
-                      (res1 (if (eq 0 (remainder div1)) (list fac1) NIL))
-                      (res2 (if (and (not (eq fac1 fac2)) (eq 0 (remainder div2))) (append (list fac2) res1) res1))
-                      (res3 (if (and (not (eq fac1 fac3)) (not (eq fac2 fac3)) (eq 0 (remainder div3)))  (append (list fac3) res2) res2))
-                      (res4 (if (and (not (eq fac1 fac4)) (not (eq fac2 fac4)) (not (eq fac3 fac4)) (eq 0 (remainder div4)))  (append (list fac4) res3) res3))
+                      (res1 (if (equal 0 (remainder div1)) (list fac1) NIL))
+                      (res2 (if (and (not (equal fac1 fac2)) (equal 0 (remainder div2))) (append (list fac2) res1) res1))
+                      (res3 (if (and (not (equal fac1 fac3)) (not (equal fac2 fac3)) (eq 0 (remainder div3)))  (append (list fac3) res2) res2))
+                      (res4 (if (and (not (equal fac1 fac4)) (not (equal fac2 fac4)) (not (eq fac3 fac4)) (eq 0 (remainder div4)))  (append (list fac4) res3) res3))
                     
                      )
 
