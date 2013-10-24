@@ -374,7 +374,7 @@
   (let* ((sp (simplify poly)) (deg (polynomial-degree sp)))
   (cond 
   ( (> 1 deg) (list sp NIL))
-  ( (= 1 deg) (list 1 NIL))
+  ( (= 1 deg) (list 1 sp))
   (T  (let* (
           (sp (simplify poly))
           (coeff (coefficient-list sp))
@@ -412,9 +412,14 @@
 (defun remainder (answer)
   (second answer))
 
+
+
+;Remainder zero
+(defun divisible (answer)
+  (equal 0 (remainder answer))
+)
 ;ASSUMPTION spl is simple polynomial
-(defun linear-factorize-loop (spl a_0 a_n b_0 b_1) 
-          
+(defun linear-factorize-loop (spl a_0 a_n b_0 b_1)      
   ;Function definition
       (cond
           ((> b_1 a_n) (list spl NIL));(if (> b_0 a_n)) (list spl NIL) (factorize-loop spl a_0 a_n (+ 1 b_0) 1)))
@@ -423,17 +428,17 @@
                       (fac1  (make-simple-polynomial (list (variable-symbol spl) 'PAIR (list (list 0 b_0) (list 1 b_1))) ))
                       (fac2  (make-simple-polynomial (list (variable-symbol spl) 'PAIR (list (list 0 (- 0 b_0)) (list 1 b_1))) ))
                       (div1 (divide spl fac1))
-                      (div2 (divide spl fac2))
+                      (div2 (if (divisible div1) (divide (quotient div1) fac2) (divide spl fac2)))
                       (sp1 (cond 
-                              ((and (equal 0 (remainder div1)) (= 0 (second div2)) (not (equal fac1 fac2))) (first (divide (quotient div1) fac2))) 
-                                ((equal 0 (remainder div1)) (quotient div1))
-                                ((equal 0 (remainder div2)) (quotient div2))
+                              ((and (divisible div1) (divisible div2)) (quotient div2)) 
+                                ((divisible div1) (quotient div1))
+                                ((divisible div2) (quotient div2))
                                 (T spl))
                       )
-                      (result (linear-factorize-loop sp1 a_0 a_n (+ b_0 1) b_1))
-                      (res1 (if (equal 0 (remainder div1)) (list fac1) NIL))
+                      (result ( (if (and (not (divisible div1)) (not (divisible div2)))  (linear-factorize-loop sp1 a_0 a_n (+ b_0 1) b_1) (get-linear-factors sp1))))
+                      (res1 (if (divisible div1) (list fac1) NIL))
                       ;(res2 (if (or (= 0 b_0) (not (equal 0 (remainder div2)))) res1 (append res1 (list fac2))))
-                      (res2 (if (or (not (equal 0 (remainder div2)))) res1 (append res1 (list fac2))))
+                      (res2 (if (divisible div2) (append res1 (list fac2)) res1))
                     )
                     (list (first result) (append res2 (second result)))
                     
@@ -475,20 +480,19 @@
                       (fac3  (make-simple-polynomial (list (variable-symbol spl) 'PAIR (list (list 0 (- 0 b_0)) (list 1 c) (list 2 b_1))) ))
                       (fac4  (make-simple-polynomial (list (variable-symbol spl) 'PAIR (list (list 0 (- 0 b_0)) (list 1 (- 0 c)) (list 2 b_1))) ))
                       (div1 (divide spl fac1))
-                      (div2 (divide spl fac2))
-                      (div3 (divide spl fac3))
-                      (div4 (divide spl fac4))
-                      (sp1 (if (equal 0 (remainder div1)) (quotient div1) spl))
-                      (sp2 (if (and (not (equal fac1 fac2)) (equal 0 (remainder div2))) (quotient (divide sp1 fac2)) sp1 ))
-                      (sp3 (if (and (not (equal fac1 fac3)) (not (equal fac2 fac3)) (equal 0 (remainder div3))) (quotient (divide sp2 fac3)) sp2))
-                      (sp4 (if (and (not (equal fac1 fac4)) (not (equal fac2 fac4)) (not (equal fac3 fac4)) (equal 0 (remainder div4))) (quotient (divide sp3 fac4)) sp3))
-                      ;sp4 is not the remaining polynomial after all 4 divisions
+                      (sp1 (if (divisible div1) (quotient div1) spl))
+                      (div2 (divide sp1 fac2))
+                      (sp2 (if (divisible div2) (quotient (divide sp1 fac2)) sp1 ))
+                      (div3 (divide sp2 fac3))
+                      (sp3 (if (divisible div3) (quotient (divide sp2 fac3)) sp2))
+                      (div4 (divide sp3 fac4))
+                      (sp4 (if (divisible div4) (quotient (divide sp3 fac4)) sp3))
+                      ;sp4 is the remaining polynomial after all 4 divisions
                       (result (quadratic-factorize-innerloop sp4 a_0 a_n b_0 b_1 (+ 1 c)))
-                      (res1 (if (equal 0 (remainder div1)) (list fac1) NIL))
-                      (res2 (if (and (not (equal fac1 fac2)) (equal 0 (remainder div2))) (append (list fac2) res1) res1))
-                      (res3 (if (and (not (equal fac1 fac3)) (not (equal fac2 fac3)) (equal 0 (remainder div3)))  (append (list fac3) res2) res2))
-                      (res4 (if (and (not (equal fac1 fac4)) (not (equal fac2 fac4)) (not (equal fac3 fac4)) (equal 0 (remainder div4)))  (append (list fac4) res3) res3))
-                    
+                      (res1 (if (divisible div1) (list fac1) NIL))
+                      (res2 (if (divisible div2) (append (list fac2) res1) res1))
+                      (res3 (if (divisible div3) (append (list fac3) res2) res2))
+                      (res4 (if (divisible div4) (append (list fac4) res3) res3))
                      )
 
                     (list (first result) (append res4 (second result)))
@@ -513,7 +517,7 @@
           (Q (quotient D))
           (R (remainder D))
   )
-  (if (equal 0 R) B (polynomial-gcd B R))
+  (if (equal 0 R) (polynomial-reduce B) (polynomial-gcd B R))
 
   ))
 
@@ -522,9 +526,24 @@
   (replace-coefficients poly (mapcar (lambda (x) (/ x (gcd-list (coefficient-list poly))))  (coefficient-list poly)))
 )
 
+
+
+;Gets gcd of a list of numbers
 (defun gcd-list (x)
   (if (= 1 (length x)) 
     (car x)
     (gcd (car x) (gcd-list (cdr x)))
+  )
+)
+
+
+(defun polynomial-factorize (poly)
+  (let* (
+        (lin-fac (get-linear-factors poly))
+        (remainder-poly (first lin-fac))
+        (linear-factors (second lin-fac))
+        (quad-fac (get-quadratic-factors remainder-poly))
+      ) 
+      (append (list (car quad-fac)) linear-factors (second quad-fac))
   )
 )
