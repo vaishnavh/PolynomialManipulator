@@ -480,14 +480,14 @@
                       (div4 (divide spl fac4))
                       (sp1 (if (equal 0 (remainder div1)) (quotient div1) spl))
                       (sp2 (if (and (not (equal fac1 fac2)) (equal 0 (remainder div2))) (quotient (divide sp1 fac2)) sp1 ))
-                      (sp3 (if (and (not (equal fac1 fac3)) (not (equal fac2 fac3)) (eq 0 (remainder div3))) (quotient (divide sp2 fac3)) sp2))
-                      (sp4 (if (and (not (equal fac1 fac4)) (not (equal fac2 fac4)) (not (eq fac3 fac4)) (eq 0 (remainder div4))) (quotient (divide sp3 fac4)) sp3))
+                      (sp3 (if (and (not (equal fac1 fac3)) (not (equal fac2 fac3)) (equal 0 (remainder div3))) (quotient (divide sp2 fac3)) sp2))
+                      (sp4 (if (and (not (equal fac1 fac4)) (not (equal fac2 fac4)) (not (equal fac3 fac4)) (equal 0 (remainder div4))) (quotient (divide sp3 fac4)) sp3))
                       ;sp4 is not the remaining polynomial after all 4 divisions
                       (result (quadratic-factorize-innerloop sp4 a_0 a_n b_0 b_1 (+ 1 c)))
                       (res1 (if (equal 0 (remainder div1)) (list fac1) NIL))
                       (res2 (if (and (not (equal fac1 fac2)) (equal 0 (remainder div2))) (append (list fac2) res1) res1))
-                      (res3 (if (and (not (equal fac1 fac3)) (not (equal fac2 fac3)) (eq 0 (remainder div3)))  (append (list fac3) res2) res2))
-                      (res4 (if (and (not (equal fac1 fac4)) (not (equal fac2 fac4)) (not (eq fac3 fac4)) (eq 0 (remainder div4)))  (append (list fac4) res3) res3))
+                      (res3 (if (and (not (equal fac1 fac3)) (not (equal fac2 fac3)) (equal 0 (remainder div3)))  (append (list fac3) res2) res2))
+                      (res4 (if (and (not (equal fac1 fac4)) (not (equal fac2 fac4)) (not (equal fac3 fac4)) (equal 0 (remainder div4)))  (append (list fac4) res3) res3))
                     
                      )
 
@@ -500,3 +500,31 @@
     ) 
 )
 
+
+(defun polynomial-gcd (poly1 poly2)
+  (let* (
+          (sp1 (simplify poly1))
+          (sp2 (simplify poly2))
+          (deg1 (polynomial-degree sp1))
+          (deg2 (polynomial-degree sp2))
+          (A (if (< deg1 deg2) sp2 sp1))
+          (B (if (>= deg1 deg2) sp2 sp1))
+          (D (divide A B))
+          (Q (quotient D))
+          (R (remainder D))
+  )
+  (if (equal 0 R) B (polynomial-gcd B R))
+
+  ))
+
+;Assumes simple polynomial
+(defun polynomial-reduce (poly)
+  (replace-coefficients poly (mapcar (lambda (x) (/ x (gcd-list (coefficient-list poly))))  (coefficient-list poly)))
+)
+
+(defun gcd-list (x)
+  (if (= 1 (length x)) 
+    (car x)
+    (gcd (car x) (gcd-list (cdr x)))
+  )
+)

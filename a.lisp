@@ -500,3 +500,31 @@
     ) 
 )
 
+
+(defun polynomial-gcd (poly1 poly2)
+  (let* (
+          (sp1 (simplify poly1))
+          (sp2 (simplify poly2))
+          (deg1 (polynomial-degree sp1))
+          (deg2 (polynomial-degree sp2))
+          (A (if (< deg1 deg2) sp2 sp1))
+          (B (if (>= deg1 deg2) sp2 sp1))
+          (D (divide A B))
+          (Q (quotient D))
+          (R (remainder D))
+  )
+  (if (equal 0 R) (polynomial-reduce B) (polynomial-gcd B R))
+
+  ))
+
+;Assumes simple polynomial
+(defun polynomial-reduce (poly)
+  (replace-coefficients poly (mapcar (lambda (x) (/ x (gcd-list (coefficient-list poly))))  (coefficient-list poly)))
+)
+
+(defun gcd-list (x)
+  (if (= 1 (length x)) 
+    (car x)
+    (gcd (car x) (gcd-list (cdr x)))
+  )
+)
