@@ -370,6 +370,8 @@
   )
 )
 
+
+;Assumes integer polynomials
 (defun get-linear-factors (poly)
   (let* ((sp (simplify poly)) (deg (polynomial-degree sp)))
   (cond 
@@ -380,9 +382,11 @@
           (coeff (coefficient-list sp))
           (const (car coeff)) 
           (high (highest-coefficient sp)) 
-          (rat (/ const high))
-          (a_0 (abs (numerator rat)))
-          (a_n (abs (denominator rat)))
+          ;(rat (/ const high))
+          ;(a_0 (abs (numerator rat)))
+          ;(a_n (abs (denominator rat)))
+          (a_0 const)
+          (a_n high)
           ) 
           (linear-factorize-loop sp a_0 a_n 0 1)   
   ))))
@@ -399,8 +403,11 @@
           (const (car coeff)) 
           (high (highest-coefficient sp)) 
           (rat (/ const high))
-          (a_0 (abs (numerator rat)))
-          (a_n (abs (denominator rat)))
+         ; (a_0 (abs (numerator rat)))
+         ; (a_n (abs (denominator rat)))
+          (a_0 const)
+          (a_n high)
+          
           ) 
           (quadratic-factorize-outerloop sp a_0 a_n 0 1)   
   ))))
@@ -539,11 +546,30 @@
 
 (defun polynomial-factorize (poly)
   (let* (
-        (lin-fac (get-linear-factors poly))
+        (coeff (coefficient-list poly))
+        (mult (den-lcm-list coeff))
+        (polym (simple-product poly mult))
+        (polyr (polynomial-reduce polym))
+        (reduced-value (gcd-list (coefficient-list polym)))
+        (lin-fac (get-linear-factors polyr))
         (remainder-poly (first lin-fac))
         (linear-factors (second lin-fac))
         (quad-fac (get-quadratic-factors remainder-poly))
       ) 
-      (append (list (car quad-fac)) linear-factors (second quad-fac))
+      (append (list (/ reduced-value mult)) (list (car quad-fac)) linear-factors (second quad-fac))
+  )
+)
+
+
+;Given numerator and denominator
+(defun split-frac (num den)
+
+)
+
+
+(defun den-lcm-list (x)
+  (if (= 1 (length x))
+    (denominator (car x) )
+    (lcm (denominator (car x)) (den-lcm-list (cdr x)))
   )
 )
