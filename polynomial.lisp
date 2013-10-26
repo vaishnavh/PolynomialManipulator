@@ -11,6 +11,7 @@
 ;;
 
 ;;COMPLEX
+
 (defun make-constant (num)
   num)
 
@@ -32,6 +33,7 @@
 
 
 ;;SIMPLE - acccepts any form of input : either complexl or (var 'coeff list-of_coeffs) or (var 'pairs (deg coeff)) -- may or may not be distinct
+;;Creates a polynomial
 (defun make-simple-polynomial(poly)
   (cond
     ((polynomial-p poly)  (simplify poly))
@@ -41,7 +43,7 @@
 )
 
 
-;Given coeff pairs, converts it into a list
+;Given coeff pairs, converts it into a list (0 1) (2 3) to (1 0 3)
 ;ASSUMES VALID INPUT 
 (defun convert-coeff (coeff)
   (if (= 1 (length coeff)) 
@@ -54,18 +56,23 @@
 
 
 
+;Extract from a pair of coefficient-degree
 (defun degree (pair)
   (first pair))
 
 (defun coefficient (pair)
   (second pair))
 
+
+;To sum two coefficient lists
 (defun sum-coefficients (coeff1  coeff2)
   (if (null coeff1) coeff2
     (if (null coeff2) coeff1
       (cons (sum-coefficients-auxiliary (car coeff1) (car coeff2)) (sum-coefficients (cdr coeff1) (cdr coeff2)))) 
       ))
 
+
+;Take care of integration constant
 (defun sum-coefficients-auxiliary (symb1 symb2)
   (if (and (numberp symb1) (numberp symb2)) (+ symb1 symb2)
     (if (or (equal symb1 'C) (equal symb2 'C)) 'C 0)
@@ -255,6 +262,8 @@
 ))
 
 
+;Integrate a polynomial
+
 (defun integrate (poly)
   (cond
     ((simple-p poly) (cons 'C (integrate-auxiliary (coefficient-list poly) 1)))
@@ -268,7 +277,7 @@
   )
 )
 
-
+;Add two polynials
 (defun simple-sum (poly1 poly2)
 ;TODO : Extend to many arguments
   (let* ( (sp1 (simplify poly1)) (sp2 (simplify poly2)) (c1 (coefficient-list sp1)) (c2 (coefficient-list sp2)) (csum (sum-coefficients c1 c2))) 
@@ -280,6 +289,8 @@
 ))
 
 
+
+;Multiply two polynomials
 (defun simple-product (poly1 poly2)
 ;TODO : Extend to many arguments
  (let ( (sp1 (simplify poly1)) (sp2 (simplify poly2)))
@@ -292,14 +303,15 @@
   )
 )
 
+
+
+;Multiply two coefficient lists
 (defun product-coefficients (poly1 poly2)
 ;TODO : Rename variables here properly; Extend to many arguments
   (if (or (null poly1) (null poly2)) NIL 
     (sum-coefficients (product-coefficients-auxiliary (car poly1) poly2) (right-shift (product-coefficients (cdr poly1) poly2)))
   )
 )
-
-
 
 (defun product-coefficients-auxiliary (symb1 poly2)
 ;TODO : Rename variables properly
@@ -313,11 +325,13 @@
 )
 
 
+
+;Subtract two polynomials
 (defun simple-subtract (poly1 poly2)
   (simple-sum poly1 (simple-product -1 poly2)))
 
 
-;Expect simple polynomial as input
+;Expect simple polynomial as input; Purges : adds up like terms
 ;NOTE: ASSUMPTION MADE
 (defun simple-purge (poly)
   (let ( (coeff (coefficient-list poly)))
@@ -370,7 +384,21 @@
   )
 )
 
+;Some auxiliary division functions : give the output of division here
+(defun quotient (answer)
+  (first answer))
 
+(defun remainder (answer)
+  (second answer))
+
+
+;Remainder zero
+(defun divisible (answer)
+  (equal 0 (remainder answer))
+) 
+ 
+
+;----------------------------------FUNCTIONS FOR FACTORIZATION OF POLYNOMIALS------------------------
 ;Assumes integer polynomials
 (defun get-linear-factors (poly)
   (let* ((sp (simplify poly)) (deg (polynomial-degree sp)))
@@ -413,18 +441,6 @@
   ))))
 )
 
-(defun quotient (answer)
-  (first answer))
-
-(defun remainder (answer)
-  (second answer))
-
-
-
-;Remainder zero
-(defun divisible (answer)
-  (equal 0 (remainder answer))
-)
 ;ASSUMPTION spl is simple polynomial
 (defun linear-factorize-loop (spl a_0 a_n b_0 b_1)      
   ;Function definition
@@ -444,7 +460,6 @@
                       )
                       (result  (if (and (not (divisible div1)) (not (divisible div2)))  (linear-factorize-loop sp1 a_0 a_n (+ b_0 1) b_1) (get-linear-factors sp1)))
                       (res1 (if (divisible div1) (list fac1) NIL))
-                      ;(res2 (if (or (= 0 b_0) (not (equal 0 (remainder div2)))) res1 (append res1 (list fac2))))
                       (res2 (if (divisible div2) (append res1 (list fac2)) res1))
                     )
                     (list (first result) (append res2 (second result)))
@@ -473,7 +488,7 @@
     )
 )
 
-;Assumption spl is simple polynomial
+;Assumption spl is simple polynomial : an auxliary function to loop over
 (defun quadratic-factorize-innerloop (spl a_0 a_n b_0 b_1 c)
     ( let* ( (BSQ (* c c))   (fourAC (* 4 (* b_0 b_1)))  )
       (cond
@@ -512,6 +527,8 @@
 )
 
 
+;-------------------------------------------------------------------------------
+;Returns the gcd of two polynomials
 (defun polynomial-gcd (poly1 poly2)
   (let* (
           (sp1 (simplify poly1))
@@ -528,7 +545,10 @@
 
   ))
 
+
 ;ASSUMES poly1 has greater than or equal degree
+;Given poly1 and poly2 returns (gcd A B) such that Apoly1 + Bpoly2 = gcd
+;An aliter function for polynomial-gcd
 (defun extended-euclid (poly1 poly2)
  (let* (
           (sp1 (simplify poly1))
@@ -556,7 +576,7 @@
   ) 
 )
 
-;Assumes simple polynomial
+;Assumes simple polynomial : Given a polynomial with integer coefficients, extracts the  constant factor
 (defun polynomial-reduce (poly)
   (replace-coefficients poly (mapcar (lambda (x) (/ x (gcd-list (coefficient-list poly))))  (coefficient-list poly)))
 )
@@ -571,7 +591,8 @@
   )
 )
 
-
+;Can be any polynomial : can have rational coeffs
+;Returns quadratic, linear factors
 (defun polynomial-factorize (poly)
   (let* (
         (coeff (coefficient-list poly))
@@ -589,7 +610,7 @@
 )
 
 
-;Given numerator and denominator
+;Given numerator and denominator, decomposes : returns a list of pairs of nums and dens
 (defun split-frac (cnum cden)
  (let* ( (num (simplify cnum))
          (den (simplify cden))
@@ -635,6 +656,8 @@
 )
 
 
+;-----------------------FUNCTIONS HANDLING list of pairs of <power, polynomial>-------------------
+;Given a  list of pairs of <power - polynomial>, removes those with polynomial of degree = 0; assume power>0
 (defun remove-constant (factor-list)
   (if (null factor-list) NIL 
   (let ((f (first factor-list)))
@@ -642,9 +665,9 @@
   ))
 )
 
-;TODO : COMMENTING!!!
 
 
+;Given a list of <power - polynomial>, returns a list of two such entities, whose polynomials are coprime; If none found, returns nil
 (defun get-coprime-fac (factor-list)
  (if (>= 1 (length factor-list))
   NIL
@@ -665,7 +688,9 @@
  )
 
 )
+;------------------------------------------------------------
 
+;Given a list of rational numbers returns a number which when multiplied to it, converts all numbers to integers
 (defun den-lcm-list (x)
   (if (= 1 (length x))
     (denominator (car x) )
@@ -673,7 +698,7 @@
   )
 )
 
-;assumes simply poly
+;assumes simply poly : what is the zero of this linear poly?
 (defun zero-linear (lin)
 (let* (
       (coeff (coefficient-list lin))
@@ -682,13 +707,13 @@
 )
 )
 
-
-
+;;-------------------FUNCTIONS HANDLING list of factors <poly, poly . . . > --------------------------;;
+;Given a list of factors, returns a  list of pairs of <count, polynomial> where count = number of occurences
 (defun count-list (factor-list)
   (if (null factor-list) NIL (let ((fac (car factor-list)))   (append (list (list (count-fac fac factor-list) fac))   (count-list (remove-fac fac factor-list))) ))
 )
 
-
+;Removes a specific factor from the list
 (defun remove-fac (fac factor-list)
   (if (null factor-list) NIL 
       (if (equal fac (car factor-list)) (remove-fac fac (cdr factor-list)) (append (list (car factor-list)) (remove-fac fac (cdr factor-list))))
@@ -696,9 +721,10 @@
 
 )
 
+
+;Given a factor, finds number of occurences in the list
 (defun count-fac (fac factor-list)
   (if (null factor-list) 0 
       (if (equal fac (car factor-list)) (+ 1 (count-fac fac (cdr factor-list))) (count-fac fac (cdr factor-list)))
   )
-
 )
