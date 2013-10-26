@@ -21,8 +21,8 @@ Construction functions :
 	- make-simple-polynomial
 
 The user can use make-simple-polynomial to create a polynomial 'object'.
-The input is either of the form (<variable-symbol> COEFF <list-of-coefficients-by-order-of-power>)
-or (<variable-symbol> PAIR <list of <degree coeff> pairs>)
+The input is either of the form ((variable-symbol) COEFF (list-of-coefficients-by-order-of-power))
+or ((variable-symbol) PAIR (list of (degree coeff) pairs))
 
 Recognization functions :
 	- constant-p
