@@ -396,7 +396,7 @@
  (let* ((sp (simplify poly)) (deg (polynomial-degree sp)))
   (cond 
   ( (> 2 deg) (list sp NIL))
-  ( (= 2 deg) (list 1 sp))
+  ( (= 2 deg) (list 1 (list sp)))
   (T  (let* (
           (sp (simplify poly))
           (coeff (coefficient-list sp))
@@ -528,6 +528,34 @@
 
   ))
 
+;ASSUMES poly1 has greater than or equal degree
+(defun extended-euclid (poly1 poly2)
+ (let* (
+          (sp1 (simplify poly1))
+          (sp2 (simplify poly2))
+          (deg1 (polynomial-degree sp1))
+          (deg2 (polynomial-degree sp2))
+          (A (if (< deg1 deg2) sp2 sp1))
+          (B (if (>= deg1 deg2) sp2 sp1))
+  ;        (D (divide A B))
+  ;        (Q (quotient D))
+  ;        (R (remainder D))
+  )
+  (if (equal 0 B) (list A 1 0) 
+      (let* (
+             (D (divide A B))
+             (Q (quotient D))
+             (R (remainder D))
+             (res (extended-euclid B R)))
+
+        (list (first res) (third res)   (simple-subtract (second res) (simple-product Q (third res))) ) 
+      )
+      
+      )
+
+  ) 
+)
+
 ;Assumes simple polynomial
 (defun polynomial-reduce (poly)
   (replace-coefficients poly (mapcar (lambda (x) (/ x (gcd-list (coefficient-list poly))))  (coefficient-list poly)))
@@ -562,14 +590,81 @@
 
 
 ;Given numerator and denominator
-(defun split-frac (num den)
- (let* (
-    (qr (get-quadratic-factors den))
-    (lr (get-linear-factors (first qr)))
-    
- ))
+(defun split-frac (cnum cden)
+ (let* ( (num (simplify cnum))
+         (den (simplify cden))
+        (num-deg (polynomial-degree num))
+        (den-deg (polynomial-degree den))
+        
+        )
+ 
+  (if (>= num-deg den-deg)
+      (let* (
+              (div (divide num den))
+      )
+        (if (= 0 (remainder div)) (list (list (quotient div) 1))   (append (list (list (quotient div) 1))  (split-frac (remainder div) den)) )
+       
+      )
+    (let* (
+          (lr (get-linear-factors den))
+          (qr (get-quadratic-factors (first lr)))
+          (qr-enum (count-list (second qr)))
+          (lr-enum (count-list (second lr)))
+          (factor-list (append (list (list 1 (first qr)))  qr-enum lr-enum)) 
+          (fl (remove-constant factor-list))
+          (cop (get-coprime-fac fl))
+      )
+      
+        (if (null cop)
+            (list (list num den))
+              (let* (
+                    (P (simplify (list '^ (second (first cop)) (first (first cop)))))
+                    (Q (simplify (list '^ (second (second cop)) (first (second cop)))))
+                    (ext-euc (extended-euclid P Q))
+                    (D (first ext-euc))
+                    (A (second ext-euc))
+                    (B (third ext-euc)) 
+              )
+              (append (split-frac (simple-product A num) (simple-product Q D))  (split-frac (simple-product B num) (simple-product D P)))
+              )
+        )
+    )
+   )
+ )
+ 
 )
 
+
+(defun remove-constant (factor-list)
+  (if (null factor-list) NIL 
+  (let ((f (first factor-list)))
+      (if (= 0 (polynomial-degree (second f))) (remove-constant (cdr factor-list))   (append (list f) (remove-constant (cdr factor-list))))
+  ))
+)
+
+;TODO : COMMENTING!!!
+
+
+(defun get-coprime-fac (factor-list)
+ (if (>= 1 (length factor-list))
+  NIL
+  (let* (
+            (a (first factor-list))
+            (b (second factor-list))
+            (gcd-ab (polynomial-gcd (second a) (second b)))
+        )
+        (if (< 0 (polynomial-degree gcd-ab))  
+              (let* (
+                        (gcd-ac (get-coprime-fac (append (list a) (cdr (cdr factor-list))))) ;list with second element removed
+                    )
+                (if (null gcd-ac)  (get-coprime-fac (cdr factor-list))  gcd-ac)
+              )  
+              (list a b) ;coprime
+        )
+  )
+ )
+
+)
 
 (defun den-lcm-list (x)
   (if (= 1 (length x))
@@ -590,7 +685,7 @@
 
 
 (defun count-list (factor-list)
-  (if (null factor-list) NIL (let ((fac (car factor-list)))   (append (list (list (count-fac fac factor-list) fac))   (count-list fac (remove-fac fac factor-list))) ))
+  (if (null factor-list) NIL (let ((fac (car factor-list)))   (append (list (list (count-fac fac factor-list) fac))   (count-list (remove-fac fac factor-list))) ))
 )
 
 
