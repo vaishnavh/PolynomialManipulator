@@ -123,8 +123,7 @@
     (or (constant-p poly) (variable-p poly) (simple-p poly)  (sum-p poly) (diff-p poly) (product-p poly) (power-p poly))))
 
 (defun exponent-p (power)
-  (and (integerp power) (<= 0 power)))
-
+  (and (integerp power) (<equal 0 power)))
 
 ;;
 ;; Selectors for polynomials
