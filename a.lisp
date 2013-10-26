@@ -376,7 +376,7 @@
   (let* ((sp (simplify poly)) (deg (polynomial-degree sp)))
   (cond 
   ( (> 1 deg) (list sp NIL))
-  ( (= 1 deg) (list 1 sp))
+  ( (= 1 deg) (list 1 (list sp)))
   (T  (let* (
           (sp (simplify poly))
           (coeff (coefficient-list sp))
@@ -563,7 +563,11 @@
 
 ;Given numerator and denominator
 (defun split-frac (num den)
-
+ (let* (
+    (qr (get-quadratic-factors den))
+    (lr (get-linear-factors (first qr)))
+    
+ ))
 )
 
 
@@ -572,4 +576,34 @@
     (denominator (car x) )
     (lcm (denominator (car x)) (den-lcm-list (cdr x)))
   )
+)
+
+;assumes simply poly
+(defun zero-linear (lin)
+(let* (
+      (coeff (coefficient-list lin))
+  )
+  (/ (- 0 (first coeff)) (second coeff))
+)
+)
+
+
+
+(defun count-list (factor-list)
+  (if (null factor-list) NIL (let ((fac (car factor-list)))   (append (list (list (count-fac fac factor-list) fac))   (count-list (remove-fac fac factor-list))) ))
+)
+
+
+(defun remove-fac (fac factor-list)
+  (if (null factor-list) NIL 
+      (if (equal fac (car factor-list)) (remove-fac fac (cdr factor-list)) (append (list (car factor-list)) (remove-fac fac (cdr factor-list))))
+  )
+
+)
+
+(defun count-fac (fac factor-list)
+  (if (null factor-list) 0 
+      (if (equal fac (car factor-list)) (+ 1 (count-fac fac (cdr factor-list))) (count-fac fac (cdr factor-list)))
+  )
+
 )
