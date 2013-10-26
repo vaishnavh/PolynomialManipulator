@@ -1,7 +1,7 @@
 PolynomialManipulator
 =====================
 
-The following LISP code defines functions that can be used to 
+The `polynomial.lisp` LISP code defines functions that can be used to 
 - construct
 - recognize
 - factorize
@@ -10,6 +10,7 @@ The following LISP code defines functions that can be used to
 - decompose
 - partial-split
 polynomials of rational coefficients, with a single variable/none.
+NOTE: A simple polynomial is a representation where we have decomposed the whol polynomial after applying all + and * operations to a_n x^n + ... a_0  form.
 
 Construction functions :
 	- make-constant
@@ -26,7 +27,7 @@ The input is either of the form `((variable-symbol) COEFF (list-of-coefficients-
 or `((variable-symbol) PAIR (list of (degree coeff) pairs))`
 Polynmial inputs can be given as `(op poly1 poly2)` where op is either *, - or + in prefix notation. `(^ poly cons)` is also a valid input signifying poly to the power of cons.
 Polynomials with different variable symbols can be used. The function `compatible` checks whether two polynomials given have the same variables used, if any.
-For example, `(simple-sum '(SIMPLE X (1/2 2)) '(SIMPLE Y (3 2)))' returns `NIL` because the the polynomials are incompatible.
+For example, `(simple-sum '(SIMPLE X (1/2 2)) '(SIMPLE Y (3 2)))` returns `NIL` because the the polynomials are incompatible.
 Recognization functions :
 - constant-p
 - variable-p
